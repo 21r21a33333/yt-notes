@@ -1,0 +1,12 @@
+{
+  "id": "dQw4w9WgXcQ",
+  "title": "Sample Talk: Intro to X",
+  "uploader": "Example Channel",
+  "duration": 600,
+  "description": "A description.",
+  "webpage_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "chapters": [
+    {"title": "Intro", "start_time": 0},
+    {"title": "Main", "start_time": 120}
+  ]
+}
