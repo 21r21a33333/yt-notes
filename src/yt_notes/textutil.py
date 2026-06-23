@@ -18,3 +18,23 @@ def format_timestamp(seconds: float) -> str:
 
 def youtube_deeplink(video_id: str, seconds: float) -> str:
     return f"https://youtu.be/{video_id}?t={int(seconds)}"
+
+
+_ID_PATTERNS = [
+    re.compile(r"youtu\.be/([A-Za-z0-9_-]{11})"),
+    re.compile(r"[?&]v=([A-Za-z0-9_-]{11})"),
+    re.compile(r"/embed/([A-Za-z0-9_-]{11})"),
+    re.compile(r"/shorts/([A-Za-z0-9_-]{11})"),
+]
+
+
+def video_id_from_url(url: str) -> str | None:
+    """Extract the 11-char YouTube video id from common URL forms, or None.
+
+    Lets the cache be checked without any network call.
+    """
+    for pat in _ID_PATTERNS:
+        m = pat.search(url)
+        if m:
+            return m.group(1)
+    return None
