@@ -8,14 +8,29 @@ from PIL import Image
 from .models import Frame
 
 
-def build_scene_detect_cmd(video_path: str, out_dir: str, threshold: float = 0.3) -> list[str]:
-    # Emit a frame whenever the scene-change score exceeds threshold; showinfo logs timestamps.
+def build_scene_detect_cmd(
+    video_path: str, out_dir: str, threshold: float = 0.3, interval: float = 15.0
+) -> list[str]:
+    """Build the ffmpeg command that extracts candidate frames.
+
+    Selects a frame on any of three conditions so it works for both slide decks
+    (hard scene cuts) and continuous-camera video (lightboard / talking head, no cuts):
+      - ``eq(n,0)``                       always grab the first frame
+      - ``gt(scene,<threshold>)``          a hard scene change (e.g. slide A -> slide B)
+      - ``gte(t-prev_selected_t,<interval>)``  a periodic floor so continuous video still
+        yields representative frames even with no scene cuts
+
+    Perceptual-hash dedup downstream collapses the redundancy this introduces (e.g. a slide
+    held for a minute is sampled several times then deduped back to one). Single quotes around
+    the expression protect its commas from ffmpeg's filtergraph parser.
+    """
+    expr = f"eq(n,0)+gt(scene,{threshold})+gte(t-prev_selected_t,{interval})"
     return [
         "ffmpeg",
         "-i",
         video_path,
         "-vf",
-        f"select='gt(scene,{threshold})',showinfo",
+        f"select='{expr}',showinfo",
         "-vsync",
         "vfr",
         f"{out_dir}/frame-%05d.png",
