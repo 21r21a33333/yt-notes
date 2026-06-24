@@ -39,9 +39,10 @@ Project root (where the CLI lives): `/Users/diwakarmatsaa/Desktop/dev/yt-notes`
    - `## Glossary` — terms → short definitions (omit the section if there are none).
 
 4. **Validate** before finishing:
-   - Run: `cd /Users/diwakarmatsaa/Desktop/dev/yt-notes && uv run yt-notes validate "<note-path>" "<bundle-path>"`
+   - Run: `cd /Users/diwakarmatsaa/Desktop/dev/yt-notes && uv run yt-notes validate "<note-path>"`
    - It prints `OK`, or a list of problems (missing sections, unbalanced mermaid fences, missing
-     images). Fix every reported problem, then re-run until it prints `OK`.
+     images — image paths are checked relative to the note's own directory). Fix every reported
+     problem, then re-run until it prints `OK`.
 
 ## Rules
 

@@ -5,18 +5,21 @@ REQUIRED_SECTIONS = ["## TL;DR", "## Key Takeaways"]
 _IMG = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 
 
-def validate_note(note_md: str, bundle_path) -> list[str]:
+def validate_note(note_md: str, base_dir) -> list[str]:
+    """Validate a note's structure. ``base_dir`` is the directory that relative image
+    paths resolve against — i.e. the note's own directory (images are referenced
+    relative to where the note lives)."""
     problems: list[str] = []
     for sec in REQUIRED_SECTIONS:
         if sec not in note_md:
             problems.append(f"Missing required section: {sec}")
     if note_md.count("```") % 2 != 0:
         problems.append("Unbalanced code fences (``` count is odd) — check mermaid blocks")
-    bp = Path(bundle_path)
+    base = Path(base_dir)
     for ref in _IMG.findall(note_md):
         if ref.startswith(("http://", "https://")):
             continue
-        candidate = Path(ref) if Path(ref).is_absolute() else (bp / ref)
+        candidate = Path(ref) if Path(ref).is_absolute() else (base / ref)
         if not candidate.exists():
             problems.append(f"Referenced image does not exist: {ref}")
     return problems

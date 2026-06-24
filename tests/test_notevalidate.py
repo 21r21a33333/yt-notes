@@ -35,3 +35,15 @@ def test_missing_image_flagged(tmp_path):
     md = "## TL;DR\n![f](frames/missing.png)\n## Key Takeaways\n- a"
     problems = validate_note(md, b)
     assert any("missing.png" in p for p in problems)
+
+
+def test_resolves_images_relative_to_note_dir(tmp_path):
+    # Real layout: note in <home>/notes/, frames in <home>/bundles/<id>/frames/.
+    # Image refs are relative to the NOTE's directory, so the base dir must be notes/.
+    notes = tmp_path / "notes"
+    notes.mkdir()
+    frames = tmp_path / "bundles" / "vid" / "frames"
+    frames.mkdir(parents=True)
+    (frames / "f.png").write_bytes(b"x")
+    md = "## TL;DR\n![f](../bundles/vid/frames/f.png)\n## Key Takeaways\n- a"
+    assert validate_note(md, notes) == []

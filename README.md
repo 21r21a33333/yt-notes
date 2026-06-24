@@ -76,10 +76,11 @@ long as the `bundles/` and `notes/` folders stay side-by-side.
 ## Validating a note
 
 ```bash
-uv run yt-notes validate "<note-path>" "<bundle-path>"
+uv run yt-notes validate "<note-path>"
 ```
 
-Checks required sections, balanced mermaid fences, and that every referenced image exists.
+Checks required sections, balanced mermaid fences, and that every referenced image exists
+(image paths are resolved relative to the note's own directory).
 
 ## Development
 

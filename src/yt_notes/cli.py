@@ -26,7 +26,9 @@ def _cmd_ingest(args) -> int:
 
 
 def _cmd_validate(args) -> int:
-    problems = validate_note(Path(args.note).read_text(), args.bundle)
+    note_path = Path(args.note)
+    # Image refs in the note are relative to the note's own directory.
+    problems = validate_note(note_path.read_text(), note_path.parent)
     if not problems:
         print("OK")
         return 0
@@ -46,7 +48,6 @@ def main(argv=None) -> int:
     ing.set_defaults(func=_cmd_ingest)
     val = sub.add_parser("validate")
     val.add_argument("note", help="path to the note markdown file")
-    val.add_argument("bundle", help="path to the bundle directory")
     val.set_defaults(func=_cmd_validate)
     args = p.parse_args(argv)
     return args.func(args)
