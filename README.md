@@ -96,6 +96,21 @@ Then, from any directory:
 
 Claude ingests the video, reads the bundle, and writes the note.
 
+#### Steering the note with instructions
+
+Append free-form instructions after the URL and the note is tailored to them:
+
+```
+/yt-notes https://youtu.be/<id> capture every key point — be exhaustive
+/yt-notes https://youtu.be/<id> this is a DSA lecture — also list LeetCode practice problems for the topic
+```
+
+When you include instructions, the skill **asks 1–3 quick clarifying questions first** (depth,
+audience, which external sources, format) so it nails what you want, then writes. If the
+guidance calls for outside material (e.g. practice problems, reference links), it does a **web
+search and verifies the links** before adding them in a clearly-labeled section. Plain
+`/yt-notes <url>` with no instructions skips the questions and writes the standard note.
+
 ### Standalone (mechanical part only — produces the bundle, not the note)
 
 ```bash
