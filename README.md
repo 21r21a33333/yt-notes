@@ -1,12 +1,42 @@
 # yt-notes
 
-Turn a YouTube video into a complete, structured note you read **instead of watching** —
-summary, sectioned notes that follow the video's flow, embedded real frames (slides /
-diagrams / code), Claude-generated mermaid diagrams, key takeaways, and timestamp deep-links
-back to the source.
+**Read YouTube videos instead of watching them.**
 
-Everything mechanical runs **locally and free** (yt-dlp + ffmpeg + Whisper). The note is
-authored by **Claude Code**, which reads the transcript and *looks at* the extracted frames.
+`yt-notes` turns a YouTube URL into a complete, structured markdown note: a summary, sectioned
+notes that follow the video's flow, **real frames** pulled from the video (slides / diagrams /
+code), **mermaid diagrams** for the concepts, key takeaways, a glossary, and **timestamp
+deep-links** back to the exact moment in the source.
+
+Everything mechanical runs **locally and free** — [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
+for transcript + video, [`ffmpeg`](https://ffmpeg.org/) for frames,
+[`faster-whisper`](https://github.com/SYSTRAN/faster-whisper) as a transcription fallback. The
+note itself is authored by **[Claude Code](https://claude.com/claude-code)**, which reads the
+transcript and *looks at* the extracted frames (so it can transcribe code, read diagram labels,
+and pick which frames are worth embedding). No paid API, no cloud pipeline.
+
+> Think of it as a local, do-it-yourself NotebookLM focused on one job: a great read-instead-of-watch note.
+
+## Example
+
+Run it on a 5:50 IBM lightboard talk and you get a note with a TL;DR, chapter-aligned
+sections, embedded whiteboard frames, two mermaid diagrams, key takeaways, a glossary, and
+`?t=` deep-links — readable in ~3 minutes:
+
+```
+## 2. What a transformer is: encoder + decoder
+... A transformer is something that transforms one sequence into another ...
+
+  [embedded lightboard frame: I → Encoder → Decoder → O]
+
+  ```mermaid
+  flowchart LR
+      I["Input sequence"] --> E["Encoder"]
+      E -- "encodings" --> D["Decoder"]
+      D --> O["Output sequence"]
+  ```
+
+[watch from 1:40](https://youtu.be/ZXiruGOCn9s?t=100)
+```
 
 ## How it works
 
@@ -25,72 +55,84 @@ Claude reads the bundle (and sees the frames) → authors the note
 notes/<video-id>-<slug>.md   ← read this instead of watching
 ```
 
-## One-time setup
+The clean split is the whole idea: **Python does the mechanical, reproducible work** (and
+caches it); **Claude does the reasoning and writing**. Every frame and transcript line carries
+a timestamp, so the right screenshot lands next to the right section.
+
+## Requirements
+
+- [`uv`](https://github.com/astral-sh/uv) (manages Python 3.12 + all Python deps for you)
+- `ffmpeg` — `brew install ffmpeg` (macOS) · `sudo apt install ffmpeg` (Debian/Ubuntu)
+- [Claude Code](https://claude.com/claude-code) — for the note-authoring step
+
+## Install
 
 ```bash
-# 1. system tool (free, OSS)
-brew install ffmpeg
-
-# 2. python env (uv provisions Python 3.12 and all deps; faster-whisper, yt-dlp, Pillow, imagehash)
-cd /Users/diwakarmatsaa/Desktop/dev/yt-notes
-uv sync
-
-# 3. verify everything is present
-uv run yt-notes doctor
+git clone <your-repo-url> yt-notes
+cd yt-notes
+uv sync                 # provisions Python 3.12 + yt-dlp, faster-whisper, Pillow, imagehash
+uv run yt-notes doctor  # ✓/✗ checklist; prints install commands for anything missing
 ```
 
-`doctor` prints a ✓/✗ checklist and the exact install command for anything missing.
+## Use it
 
-## Usage
+### Via Claude Code (the drop-in "read instead of watch" path)
 
-**Via Claude Code (recommended):** in a Claude Code session, run
+Install the skill once by symlinking it into your personal skills directory, then **restart
+Claude Code** so it's discovered:
+
+```bash
+ln -s "$(pwd)/.claude/skills/yt-notes" ~/.claude/skills/yt-notes
+```
+
+> The skill's `SKILL.md` runs the CLI from this project directory — if you cloned somewhere
+> other than the path shown in `.claude/skills/yt-notes/SKILL.md`, update that path.
+
+Then, from any directory:
 
 ```
 /yt-notes https://youtu.be/<id>
 ```
 
-The `yt-notes` skill ingests the video, reads the bundle, and writes the note. To make the
-command available from any directory, symlink the skill into your global skills dir:
+Claude ingests the video, reads the bundle, and writes the note.
 
-```bash
-ln -s /Users/diwakarmatsaa/Desktop/dev/yt-notes/.claude/skills/yt-notes ~/.claude/skills/yt-notes
-```
-
-**Standalone (ingest only, no note authoring):**
+### Standalone (mechanical part only — produces the bundle, not the note)
 
 ```bash
 uv run yt-notes ingest "https://youtu.be/<id>"   # prints the bundle path
-uv run yt-notes ingest "<url>" --force            # re-ingest, ignore cache
-uv run yt-notes ingest "<url>" --model small       # larger Whisper model for the fallback
+uv run yt-notes ingest "<url>" --force            # re-ingest, ignore the cache
+uv run yt-notes ingest "<url>" --model small      # larger Whisper model (only used when a video has no captions)
+uv run yt-notes validate "<note-path>"            # check a note's structure
 ```
 
 ## Where things land
 
-- Library home: `$YT_NOTES_HOME` (default `~/yt-notes-library`)
-- Bundles: `~/yt-notes-library/bundles/<video-id>/`
-- Notes: `~/yt-notes-library/notes/<video-id>-<slug>.md`
-
-Notes use relative image links, so they render in Obsidian, GitHub, or any markdown viewer as
-long as the `bundles/` and `notes/` folders stay side-by-side.
-
-## Validating a note
-
-```bash
-uv run yt-notes validate "<note-path>"
+```
+~/yt-notes-library/          # override with $YT_NOTES_HOME
+  notes/                     # the finished markdown you read
+  bundles/<video-id>/        # transcript + frames + metadata per video
 ```
 
-Checks required sections, balanced mermaid fences, and that every referenced image exists
-(image paths are resolved relative to the note's own directory).
+Notes use **relative image links**, so they render in Obsidian, GitHub, or any markdown viewer
+as long as `notes/` and `bundles/` stay side-by-side.
 
 ## Development
 
 ```bash
 uv run pytest          # full unit suite (no network)
-YT_NOTES_E2E=1 YT_NOTES_E2E_URL="<short CC clip>" uv run pytest tests/test_smoke_e2e.py
+# optional end-to-end smoke (hits the network, needs ffmpeg + yt-dlp):
+YT_NOTES_E2E=1 YT_NOTES_E2E_URL="<short Creative-Commons clip>" uv run pytest tests/test_smoke_e2e.py
 ```
 
-## Status / roadmap
+The deterministic core is fully unit-tested: caption parsing, segment merging, perceptual-hash
+frame dedup, manifest/caching, note validation, and ingest orchestration.
+
+## Roadmap
 
 - **v1 (now):** single video → readable note.
-- **Future add-ons (designed for, not built):** playlists/batch + cross-note index, Q&A chat
-  over the content (local RAG), audio overview (local TTS), study aids (flashcards/quiz).
+- **Designed-for, not built:** playlists / batch + a cross-note index, Q&A chat over the
+  content (local RAG), audio overview (local TTS), study aids (flashcards / quiz).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
